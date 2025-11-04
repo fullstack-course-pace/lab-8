@@ -2,7 +2,9 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  // no experimental flags on stable
+  experimental: {
+    cacheComponents: true,
+  },
 };
 
 export default nextConfig;
