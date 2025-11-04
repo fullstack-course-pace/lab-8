@@ -11,15 +11,20 @@ import { formatCurrency } from './utils';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
-/*Chapter 7 queries */
+/* ──────────────── Chapter 7 Queries ──────────────── */
 
 export async function fetchRevenue() {
   try {
+    console.log('Fetching revenue data...');
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+
     const data = await sql`
       SELECT month, revenue AS amount
       FROM revenue
       ORDER BY month ASC
     `;
+
+    console.log('Data fetch completed after 3 seconds.');
     return data;
   } catch (error) {
     console.error('Database Error:', error);
@@ -27,9 +32,13 @@ export async function fetchRevenue() {
   }
 }
 
+/* ──────────────── Chapter 8 Queries ──────────────── */
 
 export async function fetchLatestInvoices() {
   try {
+    console.log('➡️ Running fetchLatestInvoices...');
+    console.log('📦 Database URL:', process.env.POSTGRES_URL);
+
     const data = await sql<LatestInvoiceRaw[]>`
       SELECT
         invoices.id,
@@ -43,14 +52,18 @@ export async function fetchLatestInvoices() {
       LIMIT 5
     `;
 
-    const latestInvoices = data.map((invoice) => ({
+    console.log('✅ SQL executed successfully');
+    console.log('📊 Raw result:', data);
+
+    // Safely format and return
+    const latestInvoices = (Array.isArray(data) ? data : []).map((invoice) => ({
       ...invoice,
       amount: formatCurrency(invoice.amount),
     }));
 
     return latestInvoices;
   } catch (error) {
-    console.error('Database Error:', error);
+    console.error('❌ Database Error in fetchLatestInvoices:', error);
     throw new Error('Failed to fetch the latest invoices.');
   }
 }
@@ -58,8 +71,8 @@ export async function fetchLatestInvoices() {
 export async function fetchCardData() {
   try {
     // Run in parallel for speed
-    const invoiceCountPromise = sql`SELECT COUNT(*) FROM invoices`;
-    const customerCountPromise = sql`SELECT COUNT(*) FROM customers`;
+    const invoiceCountPromise = sql`SELECT COUNT(*)::int AS count FROM invoices`;
+    const customerCountPromise = sql`SELECT COUNT(*)::int AS count FROM customers`;
     const invoiceStatusPromise = sql<{
       paid: number | null;
       pending: number | null;
@@ -76,10 +89,10 @@ export async function fetchCardData() {
       invoiceStatusPromise,
     ]);
 
-    const numberOfInvoices = Number(invoiceCount[0].count ?? '0');
-    const numberOfCustomers = Number(customerCount[0].count ?? '0');
-    const totalPaidInvoices = formatCurrency(invoiceStatus[0].paid ?? 0);
-    const totalPendingInvoices = formatCurrency(invoiceStatus[0].pending ?? 0);
+    const numberOfInvoices = Number(invoiceCount[0]?.count ?? 0);
+    const numberOfCustomers = Number(customerCount[0]?.count ?? 0);
+    const totalPaidInvoices = formatCurrency(invoiceStatus[0]?.paid ?? 0);
+    const totalPendingInvoices = formatCurrency(invoiceStatus[0]?.pending ?? 0);
 
     return {
       numberOfCustomers,
@@ -93,7 +106,7 @@ export async function fetchCardData() {
   }
 }
 
-/*Existing queries*/
+/* ──────────────── Existing Queries ──────────────── */
 
 const ITEMS_PER_PAGE = 6;
 
@@ -124,7 +137,6 @@ export async function fetchFilteredInvoices(
       ORDER BY invoices.date DESC
       LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
     `;
-
     return invoices;
   } catch (error) {
     console.error('Database Error:', error);
@@ -145,7 +157,6 @@ export async function fetchInvoicesPages(query: string) {
         invoices.date::text ILIKE ${`%${query}%`} OR
         invoices.status ILIKE ${`%${query}%`}
     `;
-
     const totalPages = Math.ceil(Number(data[0].count) / ITEMS_PER_PAGE);
     return totalPages;
   } catch (error) {
@@ -168,7 +179,6 @@ export async function fetchInvoiceById(id: string) {
 
     const invoice = data.map((invoice) => ({
       ...invoice,
-      // Convert amount from cents to dollars if your formatter expects dollars elsewhere
       amount: invoice.amount / 100,
     }));
 
@@ -188,7 +198,6 @@ export async function fetchCustomers() {
       FROM customers
       ORDER BY name ASC
     `;
-
     return customers;
   } catch (err) {
     console.error('Database Error:', err);
