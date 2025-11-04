@@ -1,10 +1,9 @@
 // app/dashboard/page.tsx
-import { fetchLatestInvoices, fetchCardData } from '../lib/data';
-import { Suspense } from 'react';
-import { RevenueChartSkeleton } from '@/app/ui/skeletons';
+import { fetchRevenue, fetchLatestInvoices, fetchCardData } from '../lib/data';
 
 export default async function DashboardPage() {
-  const [latest = [], cards = {} as any] = await Promise.all([
+  const [revenue = [], latest = [], cards = {} as any] = await Promise.all([
+    fetchRevenue().catch(() => []),
     fetchLatestInvoices().catch(() => []),
     fetchCardData().catch(() => ({})),
   ]);
