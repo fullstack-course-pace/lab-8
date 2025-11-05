@@ -25,7 +25,7 @@ jobs:
         run: npm install
 
       - name: Build (static export)
-        run: npm run export
+        run: npm run build
 
       - name: Show generated files (debug)
         run: |
